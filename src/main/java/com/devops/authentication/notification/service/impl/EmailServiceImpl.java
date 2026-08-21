@@ -13,22 +13,17 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class EmailServiceImpl implements EmailService {
 
-
     private final JavaMailSender mailSender;
 
     private final TemplateEngine templateEngine;
 
-
     @Value("${spring.mail.username:no-reply@authentication.com}")
     private String senderEmail;
-
-
 
     @Override
     public void sendVerificationEmail(
@@ -39,16 +34,8 @@ public class EmailServiceImpl implements EmailService {
 
         Context context = new Context();
 
-        context.setVariable(
-                "firstName",
-                firstName
-        );
-
-        context.setVariable(
-                "verificationLink",
-                verificationLink
-        );
-
+        context.setVariable("firstName", firstName);
+        context.setVariable("verificationLink", verificationLink);
 
         sendEmail(
                 recipientEmail,
@@ -57,9 +44,6 @@ public class EmailServiceImpl implements EmailService {
                 context
         );
     }
-
-
-
 
     @Override
     public void sendPasswordResetEmail(
@@ -70,16 +54,8 @@ public class EmailServiceImpl implements EmailService {
 
         Context context = new Context();
 
-        context.setVariable(
-                "firstName",
-                firstName
-        );
-
-        context.setVariable(
-                "resetPasswordLink",
-                resetLink
-        );
-
+        context.setVariable("firstName", firstName);
+        context.setVariable("resetPasswordLink", resetLink);
 
         sendEmail(
                 recipientEmail,
@@ -88,9 +64,6 @@ public class EmailServiceImpl implements EmailService {
                 context
         );
     }
-
-
-
 
     private void sendEmail(
             String recipientEmail,
@@ -101,49 +74,49 @@ public class EmailServiceImpl implements EmailService {
 
         try {
 
-            String htmlContent =
-                    templateEngine.process(
-                            template,
-                            context
-                    );
+            String htmlContent = templateEngine.process(
+                    template,
+                    context
+            );
 
+            MimeMessage message = mailSender.createMimeMessage();
 
-            MimeMessage message =
-                    mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(
+                    message,
+                    true,
+                    "UTF-8"
+            );
 
+            /*
+             * Mailpit does not require SMTP authentication,
+             * but the From address must still be a valid email address.
+             */
+            String fromAddress = senderEmail;
 
-            MimeMessageHelper helper =
-                    new MimeMessageHelper(
-                            message,
-                            true,
-                            "UTF-8"
-                    );
+            if (fromAddress == null || fromAddress.isBlank()) {
+                fromAddress = "no-reply@authentication.com";
+            }
 
-
-            helper.setFrom(senderEmail);
+            helper.setFrom(fromAddress);
 
             helper.setTo(recipientEmail);
 
             helper.setSubject(subject);
-
 
             helper.setText(
                     htmlContent,
                     true
             );
 
-
             mailSender.send(message);
 
-
             log.info(
-                    "Email sent successfully to {}",
-                    recipientEmail
+                    "Email sent successfully to {} from {}",
+                    recipientEmail,
+                    fromAddress
             );
 
-
         } catch (MessagingException | MailException exception) {
-
 
             log.error(
                     "Failed to send email to {}",
@@ -151,12 +124,10 @@ public class EmailServiceImpl implements EmailService {
                     exception
             );
 
-
             throw new RuntimeException(
                     "Unable to send email.",
                     exception
             );
         }
     }
-
 }

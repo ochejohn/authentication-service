@@ -1,4 +1,8 @@
 spring:
+  config:
+    activate:
+      on-profile: prod
+
   application:
     name: authentication-service
 
@@ -6,8 +10,8 @@ spring:
   # MySQL
   # =========================
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/authentication_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${DB_USERNAME:root}
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
@@ -24,7 +28,7 @@ spring:
 
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
 
   # =========================
   # Flyway
@@ -39,19 +43,19 @@ spring:
   # =========================
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
+      host: ${REDIS_HOST:redis}
       port: ${REDIS_PORT:6379}
 
       repositories:
         enabled: false
 
   # =========================
-  # Mail
+  # Mailpit
   # =========================
   mail:
-    host: ${MAIL_HOST:localhost}
+    host: ${MAIL_HOST:mailpit}
     port: ${MAIL_PORT:1025}
-    username: ${MAIL_USERNAME:no-reply@authentication.com}
+    username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
 
     properties:
@@ -77,15 +81,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
-
-
-# =========================
-# Logging
-# =========================
-logging:
-  level:
-    root: INFO
+        include: health,info
 
 
 # =========================
@@ -104,6 +100,6 @@ security:
 # Application
 # =========================
 app:
-  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  frontend-url: ${FRONTEND_URL}
 
-  verification-url: ${VERIFICATION_URL:http://localhost:8080/api/auth/verify-email}
+  verification-url: ${VERIFICATION_URL}

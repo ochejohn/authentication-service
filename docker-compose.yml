@@ -1,0 +1,178 @@
+services:
+
+  # =========================
+  # MySQL
+  # =========================
+  mysql:
+    image: mysql:8.4
+    container_name: authentication-service-mysql
+    restart: unless-stopped
+
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: authentication_db
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+
+    ports:
+      - "3307:3306"
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+    networks:
+      - authentication-network
+
+
+  # =========================
+  # Redis
+  # =========================
+  redis:
+    image: redis:7-alpine
+    container_name: authentication-service-redis
+    restart: unless-stopped
+
+    command: redis-server --appendonly yes
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis_data:/data
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "ping"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+    networks:
+      - authentication-network
+
+
+  # =========================
+  # Mailpit
+  # =========================
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: authentication-service-mailpit
+    restart: unless-stopped
+
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+    networks:
+      - authentication-network
+
+
+  # =========================
+  # Authentication Service
+  # =========================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: authentication-service-app
+    restart: unless-stopped
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+      redis:
+        condition: service_healthy
+
+      mailpit:
+        condition: service_started
+
+    ports:
+      - "8080:8080"
+
+    environment:
+
+      # Spring
+      SPRING_PROFILES_ACTIVE: prod
+
+      # Server
+      SERVER_PORT: 8080
+
+      # =========================
+      # MySQL
+      # =========================
+      DB_URL: jdbc:mysql://mysql:3306/authentication_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      # =========================
+      # Redis
+      # =========================
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+
+      # =========================
+      # JWT
+      # =========================
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_TOKEN_EXPIRATION: ${JWT_ACCESS_TOKEN_EXPIRATION:-900000}
+      JWT_REFRESH_TOKEN_EXPIRATION: ${JWT_REFRESH_TOKEN_EXPIRATION:-604800000}
+
+      # =========================
+      # Mailpit
+      # =========================
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_USERNAME: ""
+      MAIL_PASSWORD: ""
+
+      # =========================
+      # Application
+      # =========================
+      FRONTEND_URL: ${FRONTEND_URL}
+      VERIFICATION_URL: ${VERIFICATION_URL}
+
+    networks:
+      - authentication-network
+
+
+# =========================
+# Volumes
+# =========================
+volumes:
+  mysql_data:
+    name: authentication-service_mysql_data
+
+  redis_data:
+    name: authentication-service_redis_data
+
+
+# =========================
+# Network
+# =========================
+networks:
+  authentication-network:
+    driver: bridge
