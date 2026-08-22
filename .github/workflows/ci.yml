@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   build-and-test:
-    name: Build and Test
+    name: Build, Test, Scan and Push
     runs-on: ubuntu-latest
 
     services:
@@ -87,3 +87,16 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Tag Docker Image
+        run: |
+          docker tag authentication-service:${{ github.sha }} \
+            ochejohndev/authentication-service:${{ github.sha }}
+
+          docker tag authentication-service:${{ github.sha }} \
+            ochejohndev/authentication-service:latest
+
+      - name: Push Docker Image
+        run: |
+          docker push ochejohndev/authentication-service:${{ github.sha }}
+          docker push ochejohndev/authentication-service:latest
